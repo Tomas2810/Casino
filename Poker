@@ -1,0 +1,17 @@
+import tkinter as tk
+
+root = tk.Tk()
+root.title("Poker")
+root.geometry("900x600")
+
+# frame na vycentrovanie obsahu
+frame = tk.Frame(root)
+frame.pack(expand=True)
+
+playbutton = tk.Button(frame, text="PLAY", width=15, height=2,font=("Arial", 18) )
+playbutton.pack(pady=10)
+
+combbutton = tk.Button(frame, text="COMBINATIONS", width=15, height=2, font=("Arial", 18))
+combbutton.pack(pady=10)
+
+root.mainloop()
