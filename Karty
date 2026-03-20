@@ -1,0 +1,46 @@
+import tkinter as tk
+
+class Card(tk.Canvas):
+    def __init__(self, master, value, suit, width=100, height=150):
+        super().__init__(master, width=width, height=height, bg="green", highlightthickness=0)
+
+        self.value = value
+        self.suit = suit
+
+        # Farba podľa typu
+        if suit in ["♥", "♦"]:
+            color = "red"
+        else:
+            color = "black"
+
+        # Pozadie karty
+        self.create_rectangle(5, 5, width-5, height-5, fill="white", outline="black", width=2)
+
+        # Horný ľavý roh
+        self.create_text(15, 15, text=f"{value}\n{suit}", fill=color, anchor="nw", font=("Arial", 10, "bold"))
+
+        # Stred
+        self.create_text(width/2, height/2, text=f"{suit}", fill=color, font=("Arial", 40))
+
+        # Spodný pravý roh
+        self.create_text(width-15, height-15, text=f"{value}\n{suit}", fill=color, anchor="se", font=("Arial", 10, "bold"))
+
+
+# Hlavné okno
+root = tk.Tk()
+root.title("Žolík karty")
+root.configure(bg="green")
+
+# Príklad kariet
+cards = [
+    ("A", "♠"),
+    ("10", "♥"),
+    ("K", "♦"),
+    ("7", "♣")
+]
+
+for i, (value, suit) in enumerate(cards):
+    card = Card(root, value, suit)
+    card.grid(row=0, column=i, padx=10, pady=20)
+
+root.mainloop()
