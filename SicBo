@@ -6,82 +6,143 @@ balance = 100
 def roll_dice():
     return [random.randint(1, 6) for _ in range(3)]
 
-def calculate_win(bet, choice, dice, chosen_number=None):
+PAYOUTS_TOTAL = {
+    4: 50, 5: 18, 6: 14, 7: 12, 8: 8, 9: 6, 10: 6,
+    11: 6, 12: 6, 13: 8, 14: 12, 15: 14, 16: 18, 17: 50
+}
+
+def open_rules():
+    win = tk.Toplevel(root)
+    win.title("Stávky - pravidlá")
+    win.geometry("600x600")
+
+    text = tk.Text(win, wrap="word", font=("Arial", 11))
+    text.pack(expand=True, fill="both")
+
+    rules = """
+🟢 Big
+👉 súčet 11–17 (bez triple)
+💰 výhra: 1:1
+
+🔵 Small
+👉 súčet 4–10 (bez triple)
+💰 výhra: 1:1
+
+🟡 Total
+👉 presný súčet (4–17)
+💰 výhra: 4:1 až 50:1
+
+🔴 Single
+👉 číslo podľa výskytu
+💰 výhra: 1×=1:1, 2×=2:1, 3×=3:1
+
+🟣 Double
+👉 aspoň 2 rovnaké čísla
+💰 výhra: 10:1
+
+🟤 Exact Double
+👉 presne pár (2 rovnaké + 1 iné)
+💰 výhra: 10:1
+
+🟠 Specific Triple
+👉 3 rovnaké číslo
+💰 výhra: 180:1
+
+⚫ Any Triple
+👉 akékoľvek 3 rovnaké
+💰 výhra: 30:1
+
+🟢 Combination
+👉 2 čísla musia padnúť
+💰 výhra: 5:1
+
+🔷 3 Dice Combo
+👉 presná trojica (napr. 1-2-3)
+💰 výhra: 30:1
+"""
+
+    text.insert("1.0", rules)
+    text.config(state="disabled")
+
+def calculate_win(bet, choice, dice, selected=None):
     total = sum(dice)
-    win = 0
+    is_triple = dice[0] == dice[1] == dice[2]
 
     if choice == "big":
-        if 11 <= total <= 17 and not (dice[0] == dice[1] == dice[2]):
-            win = bet
-        else:
-            win = -bet
-    elif choice == "small":
-        if 4 <= total <= 10 and not (dice[0] == dice[1] == dice[2]):
-            win = bet
-        else:
-            win = -bet
-    elif choice == "total":
-        payouts = {4:50, 5:18, 6:14, 7:12, 8:8, 9:6, 10:6, 11:6, 12:6, 13:8, 14:12, 15:14, 16:18, 17:50}
-        if total == chosen_number:
-            win = bet * payouts.get(total, 6)
-        else:
-            win = -bet
-    elif choice == "single":
-        count = dice.count(chosen_number)
-        win = bet * count if count > 0 else -bet
-    elif choice == "double":
-        win = bet * 10 if dice.count(chosen_number) >= 2 else -bet
-    elif choice == "specific_triple":
-        win = bet * 150 if dice[0]==dice[1]==dice[2]==chosen_number else -bet
-    elif choice == "any_triple":
-        win = bet * 24 if dice[0]==dice[1]==dice[2] else -bet
-    elif choice == "combination":
-        combo = sorted(chosen_number)
-        win = bet * 5 if all(x in dice for x in combo) else -bet
+        return bet if 11 <= total <= 17 and not is_triple else -bet
 
-    return win
+    elif choice == "small":
+        return bet if 4 <= total <= 10 and not is_triple else -bet
+
+    elif choice == "total":
+        return bet * PAYOUTS_TOTAL[total] if total == selected else -bet
+
+    elif choice == "single":
+        count = dice.count(selected)
+        return bet * count if count > 0 else -bet
+
+    elif choice == "double":
+        return bet * 10 if dice.count(selected) >= 2 else -bet
+
+    elif choice == "exact_double":
+        return bet * 10 if dice.count(selected) == 2 else -bet
+
+    elif choice == "specific_triple":
+        return bet * 180 if dice == [selected]*3 else -bet
+
+    elif choice == "any_triple":
+        return bet * 30 if is_triple else -bet
+
+    elif choice == "combination":
+        a, b = selected
+        return bet * 5 if a != b and a in dice and b in dice else -bet
+
+    elif choice == "triple_combo":
+        return bet * 30 if sorted(dice) == sorted(selected) else -bet
+
+    return -bet
 
 def validate_input(choice, value):
-    # Pre Single, Double, Specific Triple
-    if choice in ["single","double","specific_triple"]:
-        try:
+    try:
+        if choice in ["single","double","exact_double","specific_triple"]:
             num = int(value)
-        except:
-            return False, "Musíš zadať číslo 1–6"
-        if num <1 or num>6:
-            return False, "Číslo musí byť medzi 1 a 6"
-        return True, num
-    # Pre Total
-    elif choice == "total":
-        try:
+            if 1 <= num <= 6:
+                return True, num
+            return False, "Číslo musí byť 1–6"
+
+        elif choice == "total":
             num = int(value)
-        except:
-            return False, "Musíš zadať číslo 4–17"
-        if num <4 or num>17:
-            return False, "Súčet musí byť medzi 4 a 17"
-        return True, num
-    # Pre Combination
-    elif choice == "combination":
-        try:
-            parts = value.split(",")
-            nums = [int(p.strip()) for p in parts]
-        except:
-            return False, "Kombinácia musí byť dve čísla 1–6 oddelené čiarkou"
-        if len(nums)!=2 or any(n<1 or n>6 for n in nums):
-            return False, "Kombinácia musí byť dve čísla 1–6 oddelené čiarkou"
-        return True, nums
-    else:
+            if 4 <= num <= 17:
+                return True, num
+            return False, "4–17"
+
+        elif choice == "combination":
+            nums = [int(x.strip()) for x in value.split(",")]
+            if len(nums)==2 and nums[0]!=nums[1] and all(1<=n<=6 for n in nums):
+                return True, nums
+            return False, "2 čísla"
+
+        elif choice == "triple_combo":
+            nums = [int(x.strip()) for x in value.split(",")]
+            if len(nums)==3 and all(1<=n<=6 for n in nums):
+                return True, nums
+            return False, "3 čísla"
+
         return True, None
+
+    except:
+        return False, "Neplatný vstup"
 
 def play():
     global balance
+
     try:
         bet = int(entry_bet.get())
-        if bet <=0:
+        if bet <= 0:
             result_label.config(text="Stávka musí byť kladná")
             return
     except:
-        result_label.config(text="Zadaj platnú stávku")
+        result_label.config(text="Zadaj číslo")
         return
 
     if bet > balance:
@@ -91,32 +152,32 @@ def play():
     choice = bet_type.get()
     value = entry_number.get().strip()
 
-    # Povinné číslo/kombinácia
-    if choice in ["total","single","double","specific_triple","combination"] and value=="":
-        result_label.config(text="Pre túto stávku musíš zadať číslo alebo kombináciu")
+    if choice in ["total","single","double","exact_double","specific_triple","combination","triple_combo"] and value == "":
+        result_label.config(text="Treba číslo")
         return
 
-    valid, result = validate_input(choice, value)
+    valid, selected = validate_input(choice, value)
     if not valid:
-        result_label.config(text=f"Chyba: {result}")
+        result_label.config(text=selected)
         return
 
-    chosen_number = result
     dice = roll_dice()
-    win = calculate_win(bet, choice, dice, chosen_number)
+    win = calculate_win(bet, choice, dice, selected)
     balance += win
 
     result_label.config(text=f"Kocky: {dice} | Výhra: {win}")
     balance_label.config(text=f"Balance: {balance}")
 
-# ---------------- UI ----------------
 root = tk.Tk()
-root.title("Kompletné Sic Bo - validácia")
+root.title("Sic Bo FULL CASINO")
 root.geometry("900x700")
 root.resizable(False, False)
 
 balance_label = tk.Label(root, text=f"Balance: {balance}", font=("Arial", 18))
 balance_label.pack(pady=20)
+
+rules_btn = tk.Button(root, text="Stávky (pravidlá)", font=("Arial", 14), command=open_rules)
+rules_btn.pack(pady=5)
 
 middle_frame = tk.Frame(root)
 middle_frame.pack(pady=20)
@@ -126,16 +187,19 @@ tk.Label(middle_frame, text="Číslo / Kombinácia", font=("Arial", 14)).grid(ro
 
 entry_bet = tk.Entry(middle_frame, font=("Arial", 14))
 entry_bet.grid(row=1, column=0, padx=10, pady=5)
+
 entry_number = tk.Entry(middle_frame, font=("Arial", 14))
 entry_number.grid(row=1, column=1, padx=10, pady=5)
 
 bet_type = tk.StringVar(value="big")
 types = [
     ("Big", "big"), ("Small", "small"), ("Total", "total"),
-    ("Single Number", "single"), ("Double", "double"),
+    ("Single", "single"), ("Double", "double"),
+    ("Exact Double", "exact_double"),
     ("Specific Triple", "specific_triple"),
     ("Any Triple", "any_triple"),
-    ("Combination", "combination")
+    ("Combination", "combination"),
+    ("3 Dice Combo", "triple_combo")
 ]
 
 type_frame = tk.Frame(middle_frame)
@@ -143,6 +207,9 @@ type_frame.grid(row=1, column=2, padx=20, sticky="n")
 tk.Label(type_frame, text="Typ stávky", font=("Arial", 14)).pack(anchor="w")
 for text, value in types:
     tk.Radiobutton(type_frame, text=text, variable=bet_type, value=value).pack(anchor="w")
+
+hint_label = tk.Label(root, text="👉 Viac čísel oddeľ čiarkou (,)", font=("Arial", 12), fg="red")
+hint_label.pack(pady=(10, 0))
 
 play_button = tk.Button(root, text="Hrať", font=("Arial", 16), command=play, width=20)
 play_button.pack(pady=20)
