@@ -1,0 +1,141 @@
+import tkinter as tk
+import random
+from tkinter import messagebox
+
+class Card(tk.Canvas):
+    def __init__(self, master, value, suit, width=100, height=150):
+        super().__init__(master, width=width, height=height, bg="green", highlightthickness=0)
+        self.value = value
+        self.suit = suit
+        color = "red" if suit in ["♥", "♦"] else "black"
+        self.create_rectangle(5, 5, width-5, height-5, fill="white", outline="black", width=2)
+        self.create_text(15, 15, text=f"{value}\n{suit}", fill=color, anchor="nw", font=("Arial", 10, "bold"))
+        self.create_text(width/2, height/2, text=f"{suit}", fill=color, font=("Arial", 40))
+        self.create_text(width-15, height-15, text=f"{value}\n{suit}", fill=color, anchor="se", font=("Arial", 10, "bold"))
+
+root = tk.Tk()
+root.title("Casino War")
+root.geometry("900x600")
+root.configure(bg="green")
+
+money = 1000
+
+money_label = tk.Label(root, text=f"Money: {money}", font=("Arial", 20), bg="green", fg="white")
+money_label.pack(pady=10)
+
+result_label = tk.Label(root, text="", font=("Arial", 24, "bold"), bg="green", fg="yellow")
+result_label.pack(pady=10)
+
+cards_frame = tk.Frame(root, bg="green", width=900, height=400)
+cards_frame.pack(expand=True)
+
+suits = ["♠", "♥", "♦", "♣"]
+values = ["2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A"]
+deck = [(v, s) for s in suits for v in values] + [("JOKER", "★")]
+
+def card_value(card):
+    v, s = card
+    if v.isdigit():
+        return int(v)
+    elif v == 'J':
+        return 11
+    elif v == 'Q':
+        return 12
+    elif v == 'K':
+        return 13
+    elif v == 'A':
+        return 14
+    elif v == 'JOKER':
+        return 15
+    return 0
+
+def play_casino_war(pool):
+    global money
+    for widget in cards_frame.winfo_children():
+        widget.destroy()
+
+    player_card = random.choice(deck)
+    dealer_card = random.choice(deck)
+
+    player_val = card_value(player_card)
+    dealer_val = card_value(dealer_card)
+
+    card_width = 100
+    card_height = 150
+    center_x = (900 - card_width) // 2
+    dealer_y = 50
+    player_y = dealer_y + card_height + 50
+
+    Card(cards_frame, *dealer_card).place(x=center_x, y=dealer_y)
+    dealer_label = tk.Label(cards_frame, text="Dealer", font=("Arial", 14, "bold"), bg="green", fg="white")
+    dealer_label.place(x=center_x + card_width + 20, y=dealer_y + 60)
+
+    Card(cards_frame, *player_card).place(x=center_x, y=player_y)
+    player_label = tk.Label(cards_frame, text="Hráč", font=("Arial", 14, "bold"), bg="green", fg="white")
+    player_label.place(x=center_x + card_width + 20, y=player_y + 60)
+
+    if player_val > dealer_val:
+        result_text = f"Vyhral si {pool}!"
+        money += pool
+    elif player_val < dealer_val:
+        result_text = f"Prehral si {pool}!"
+        money -= pool
+    else:
+        result_text = f"Remíza! Prehrávaš polovicu poolu: {pool//2}"
+        money -= pool // 2
+
+    money_label.config(text=f"Money: {money}")
+    result_label.config(text=result_text)
+
+    bet_button.config(state="disabled")
+    again_button.config(state="normal")
+
+def place_bet():
+    try:
+        pool = int(entry.get())
+    except ValueError:
+        messagebox.showerror("Chyba", "Zadaj číslo!")
+        return
+
+    global money
+    if pool < 1:
+        messagebox.showerror("Chyba", "Suma musí byť aspoň 1!")
+        return
+    if pool > money:
+        messagebox.showerror("Chyba", f"Nemas dostatok peňazí! Max: {money}")
+        return
+
+    entry.delete(0, tk.END)
+    play_casino_war(pool)
+
+def play_again():
+    result_label.config(text="")
+    for widget in cards_frame.winfo_children():
+        widget.destroy()
+    bet_button.config(state="normal")
+    again_button.config(state="disabled")
+    entry.focus()
+
+bottom_frame = tk.Frame(root, bg="green")
+bottom_frame.pack(side="bottom", pady=20, padx=20, anchor="w")
+
+entry = tk.Entry(bottom_frame, width=30, font=("Arial", 18))
+entry.pack(side="left")
+
+bet_button = tk.Button(bottom_frame, text="Bet", font=("Arial", 16), command=place_bet)
+bet_button.pack(side="left", padx=10)
+
+again_button = tk.Button(bottom_frame, text="Again", font=("Arial", 16), command=play_again)
+again_button.pack(side="left", padx=10)
+again_button.config(state="disabled")
+
+def handle_enter(event):
+    if bet_button['state'] == 'normal':
+        place_bet()
+    elif again_button['state'] == 'normal':
+        play_again()
+
+root.bind("<Return>", handle_enter)
+
+entry.focus()
+root.mainloop()
