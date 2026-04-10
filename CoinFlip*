@@ -1,1 +1,96 @@
+import tkinter as tk
+import random
 
+root = tk.Tk()
+root.title("CoinFlip")
+root.geometry("300x450")
+
+balance = 100
+can_flip = True
+
+balance_label = tk.Label(root, text=f"Balance: {balance}", font=("Arial", 16))
+balance_label.pack(pady=10)
+
+# canvas
+canvas = tk.Canvas(root, width=80, height=80)
+canvas.pack(expand=True)
+
+coin_circle = canvas.create_oval(10, 10, 70, 70, fill="gold", outline="black", width=2)
+coin_text = canvas.create_text(40, 40, text="", font=("Arial", 18, "bold"))
+
+canvas.itemconfig(coin_circle, state="hidden")
+canvas.itemconfig(coin_text, state="hidden")
+
+result_label = tk.Label(root, text="", font=("Arial", 14))
+result_label.pack(pady=5)
+
+bet_label = tk.Label(root, text="Bet:", font=("Arial", 14))
+bet_label.pack()
+
+bet_entry = tk.Entry(root, font=("Arial", 12), justify="center")
+bet_entry.pack(pady=5)
+
+def hide_coin():
+    canvas.itemconfig(coin_circle, state="hidden")
+    canvas.itemconfig(coin_text, state="hidden")
+
+def show_coin():
+    canvas.itemconfig(coin_circle, state="normal")
+    canvas.itemconfig(coin_text, state="normal")
+
+def flip(choice):
+    global balance, can_flip
+
+    if not can_flip:
+        return
+
+    bet = bet_entry.get()
+    if not bet.isdigit():
+        result_label.config(text="Vsaď!")
+        return
+
+    bet = int(bet)
+    if bet <= 0 or bet > balance:
+        result_label.config(text="Wrong bet amount!")
+        return
+
+    can_flip = False
+
+    result = random.choice(["Heads", "Tails"])
+
+    if result == "Heads":
+        canvas.itemconfig(coin_text, text="$")
+    else:
+        canvas.itemconfig(coin_text, text="1")
+
+    show_coin()
+
+    # win/lose
+    if choice == result:
+        balance += bet
+        result_label.config(text=f"{result} - You WIN!")
+    else:
+        balance -= bet
+        result_label.config(text=f"{result} - You lose!")
+
+    balance_label.config(text=f"Balance: {balance}")
+
+    def reset():
+        global can_flip
+        hide_coin()
+        can_flip = True
+
+    root.after(1000, reset)
+
+frame = tk.Frame(root)
+frame.pack(side="bottom", fill="x", pady=20)
+
+Head = tk.Button(frame, text="Heads", font=("Arial", 16), height=2,
+                 command=lambda: flip("Heads"))
+Head.pack(fill="x", padx=20, pady=5)
+
+Symbol = tk.Button(frame, text="Tails", font=("Arial", 16), height=2,
+                   command=lambda: flip("Tails"))
+Symbol.pack(fill="x", padx=20, pady=5)
+
+root.mainloop()
