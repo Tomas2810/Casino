@@ -1,0 +1,136 @@
+import tkinter as tk
+import random
+
+class Card(tk.Canvas):
+    def __init__(self, master, value, suit, width=100, height=150):
+        super().__init__(master, width=width, height=height, bg="white", highlightthickness=0)
+
+        color = "red" if suit in ["♥", "♦"] else "black"
+
+        self.create_rectangle(5, 5, width-5, height-5, fill="white", outline="black", width=2)
+        self.create_text(15, 15, text=f"{value}\n{suit}", fill=color, anchor="nw", font=("Arial", 10, "bold"))
+        self.create_text(width/2, height/2, text=suit, fill=color, font=("Arial", 40))
+        self.create_text(width-15, height-15, text=f"{value}\n{suit}", fill=color, anchor="se", font=("Arial", 10, "bold"))
+
+root = tk.Tk()
+root.title("Guess the Card")
+root.geometry("350x650")
+root.configure(bg="white")
+
+balance = 100
+
+values = ["A","2","3","4","5","6","7","8","9","10","J","Q","K"]
+suits = ["♠","♥","♦","♣"]  # správne, bez duplicity
+
+balance_label = tk.Label(root, text=f"Balance: {balance}", font=("Arial", 16), bg="white")
+balance_label.pack(pady=10)
+
+bet_entry = tk.Entry(root, font=("Arial", 12), justify="center")
+bet_entry.pack(pady=5)
+
+result_label = tk.Label(root, text="", font=("Arial", 12), bg="white")
+result_label.pack(pady=5)
+
+card_frame = tk.Frame(root, bg="white")
+card_frame.pack(pady=20)
+
+mode_var = tk.StringVar(value="color")
+guess_value = {"color": None, "suit": None}
+
+# MODE
+tk.Radiobutton(root, text="Color (2x)", variable=mode_var, value="color", bg="white").pack()
+tk.Radiobutton(root, text="Suit (4x)", variable=mode_var, value="suit", bg="white").pack()
+tk.Radiobutton(root, text="Exact (52x)", variable=mode_var, value="exact", bg="white").pack()
+
+# COLOR BUTTONS
+color_frame = tk.Frame(root, bg="white")
+color_frame.pack(pady=5)
+
+def set_color(c):
+    guess_value["color"] = c
+
+tk.Button(color_frame, text="Red", width=8, command=lambda: set_color("red")).pack(side="left", padx=5)
+tk.Button(color_frame, text="Black", width=8, command=lambda: set_color("black")).pack(side="left", padx=5)
+
+# SUIT BUTTONS
+suit_frame = tk.Frame(root, bg="white")
+suit_frame.pack(pady=5)
+
+def set_suit(s):
+    guess_value["suit"] = s
+
+for s in suits:
+    tk.Button(suit_frame, text=s, width=4, command=lambda s=s: set_suit(s)).pack(side="left", padx=3)
+
+# EXACT DROPDOWN
+exact_frame = tk.Frame(root, bg="white")
+exact_frame.pack(pady=5)
+
+value_var = tk.StringVar(value="A")
+suit_var = tk.StringVar(value="♠")
+
+tk.OptionMenu(exact_frame, value_var, *values).pack(side="left")
+tk.OptionMenu(exact_frame, suit_var, *suits).pack(side="left")
+
+def draw_card():
+    global balance
+
+    try:
+        bet = int(bet_entry.get())
+    except:
+        result_label.config(text="Zadaj bet")
+        return
+
+    if bet <= 0 or bet > balance:
+        result_label.config(text="Neplatný bet")
+        return
+
+    mode = mode_var.get()
+
+    # zobraz tip pred výsledkom
+    tip = (
+        guess_value["color"] if mode == "color" else
+        guess_value["suit"] if mode == "suit" else
+        value_var.get() + suit_var.get()
+    )
+    result_label.config(text=f"Tip: {tip}")
+
+    value = random.choice(values)
+    suit = random.choice(suits)
+
+    for w in card_frame.winfo_children():
+        w.destroy()
+    Card(card_frame, value, suit).pack()
+
+    win = False
+    multiplier = 0
+
+    if mode == "color":
+        color = "red" if suit in ["♥","♦"] else "black"
+        multiplier = 2
+        if guess_value["color"] == color:
+            win = True
+
+    elif mode == "suit":
+        multiplier = 4
+        if guess_value["suit"] == suit:
+            win = True
+
+    elif mode == "exact":
+        multiplier = 52
+        if (value_var.get(), suit_var.get()) == (value, suit):
+            win = True
+
+    if win:
+        winnings = bet * multiplier
+        balance += winnings
+        result_label.config(text=f"Tip: {tip} | Vyhral si +{winnings}")
+    else:
+        balance -= bet
+        result_label.config(text=f"Tip: {tip} | Prehral si -{bet}")
+
+    balance_label.config(text=f"Balance: {balance}")
+
+tk.Button(root, text="Bet", font=("Arial", 16), command=draw_card).pack(pady=10)
+
+root.mainloop()
